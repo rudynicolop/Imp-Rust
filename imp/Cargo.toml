@@ -1,0 +1,10 @@
+[package]
+name = "imp"
+version = "0.1.0"
+authors = ["rnp39 <rnp39@cornell.edu>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+do-notation = "0.1.3"
