@@ -39,8 +39,8 @@ fn aeval (s : &Store, e : &Aexpr) -> Result<i32,String> {
 	Aexpr::AVar(x) =>
 	    deref_option(s.get(x)).ok_or("Unbound variable".into()),
 	Aexpr::AOp(o,e1,e2) => m! {
-	    z1 <- aeval(s,&*e1);
-	    z2 <- aeval(s,&*e2);
+	    z1 <- aeval(s,e1);
+	    z2 <- aeval(s,e2);
 	    Result::Ok(aop_eval(*o,z1,z2))
 	}
     }
@@ -50,13 +50,13 @@ fn beval (s : &Store, e : &Bexpr) -> Result<bool,String> {
     match e {
 	Bexpr::BBool(b) => Result::Ok(*b),
 	Bexpr::BCop(o,e1,e2) => m! {
-	    z1 <- aeval(s,&*e1);
-	    z2 <- aeval(s,&*e2);
+	    z1 <- aeval(s,e1);
+	    z2 <- aeval(s,e2);
 	    Result::Ok(cop_eval(*o,z1,z2))
 	},
 	Bexpr::BBop(o,e1,e2) => m! {
-	    b1 <- beval(s,&*e1);
-	    b2 <- beval(s,&*e2);
+	    b1 <- beval(s,e1);
+	    b2 <- beval(s,e2);
 	    Result::Ok(bop_eval(*o,b1,b2))
 	}
     }
@@ -70,16 +70,16 @@ fn eval (s : &mut Store, c : &Cmd) -> Result<(),String> {
 	    Result::Ok(ignore(s.insert(x.clone(),z)))
 	},
 	Cmd::CSeq(c1,c2) => m! {
-	    _ <- eval(s,&*c1); eval(s,&*c2)
+	    _ <- eval(s,c1); eval(s,c2)
 	},
 	Cmd::CIf(e,c1,c2) => m! {
 	    b <- beval(s,e);
-	    if b { eval(s,&*c1) } else { eval(s,&*c2) }
+	    if b { eval(s,c1) } else { eval(s,c2) }
 	},
 	Cmd::CWhile(e,w) => m! {
 	    b <- beval(s,e);
 	    if b {
-		m! { _ <- eval(s,&*w); eval(s,c) }
+		m! { _ <- eval(s,w); eval(s,c) }
 	    } else {
 		Result::Ok(())
 	    }
