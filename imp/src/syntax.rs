@@ -1,4 +1,5 @@
-// Arithmetic operAtors.
+// Arithmetic operators.
+#[derive(Clone,Copy)]
 pub enum Aop { AAdd, ASub, AMul }
 
 // Arithmetic expressions.
@@ -8,20 +9,22 @@ pub enum Aexpr {
     AOp(Aop,Box<Aexpr>,Box<Aexpr>)
 }
 
-// CompArison operAtors.
+// Comparison operators.
+#[derive(Clone,Copy)]
 pub enum Cop { CEq, CLt }
 
-// BooleAn operAtors.
+// Boolean operators.
+#[derive(Clone,Copy)]
 pub enum Bop { BAnd, BOr }
 
-// BooleAn expressions.
+// Boolean expressions.
 pub enum Bexpr {
     BBool(bool),
     BCop(Cop,Box<Aexpr>,Box<Aexpr>),
     BBop(Bop,Box<Bexpr>,Box<Bexpr>)
 }
 
-// CommAnds.
+// Commands.
 pub enum Cmd {
     CSkip,
     CAss(String,Box<Aexpr>),
