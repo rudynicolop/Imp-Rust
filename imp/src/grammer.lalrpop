@@ -1,0 +1,64 @@
+use syntax::{Cmd,Bexpr,Cop,Bop,Aexpr,Aop};
+
+grammar;
+
+pub Seq: Cmd = {
+    <c1:Ctrl> ";" <c2:Seq> => Cmd::CSeq(Box::new(c1),Box::new(c2)),
+    Ctrl
+};
+
+Ctrl: Cmd = {
+      "if" <e:Or> "{" <c1:Seq> "}" "else" "{" <c2:Seq> "}"
+      	   => Cmd::CIf(Box::new(e),Box::new(c1),Box::new(c2)),
+      "while" <e:Or> "{" <c:Seq> "}"
+      	   => Cmd::CWhile(Box::new(e),Box::new(c)),
+      Ass
+};
+
+Ass: Cmd = {
+     <x:Var> ":=" <e:Add> => Cmd::CAss(x,Box::new(e)),
+     "skip"         => Cmd::CSkip
+};
+
+Or: Bexpr  = {
+    <e1:And> "or"  <e2:Or> => Bexpr::BOp(Bop::BOr,Box::new(e1),Box::new(e2)),
+    And
+};
+
+And: Bexpr = {
+    <e1:Comp> "and" <e2:Or> => Bexpr::BOp(Bop::BAnd,Box::new(e1),Box::new(e2)),
+    Comp
+};
+
+Comp: Bexpr = {
+      <e1:Add> "=?" <e2:Add> => Bexpr::COp(Cop::CEq,Box::new(e1),Box::new(e2)),
+      <e1:Add> "<?" <e2:Add> => Bexpr::COp(Cop::CLt,Box::new(e1),Box::new(e2)),
+      BLit
+};
+
+BLit: Bexpr = {
+      "true"  => Bexpr::BBool(true),
+      "false" => Bexpr::BBool(false),
+      "(" <e:Or> ")" => e
+};
+
+Add: Aexpr = {
+     <e1:Add> "+" <e2:Mul> => Aexpr::AOp(Aop::AAdd,Box::new(e1),Box::new(e2)),
+     <e1:Add> "-" <e2:Mul> => Aexpr::AOp(Aop::ASub,Box::new(e1),Box::new(e2)),
+     Mul
+};
+
+Mul: Aexpr = {
+     <e1:Mul> "*" <e2:ALit> => Aexpr::AOp(Aop::AMul,Box::new(e1),Box::new(e2)),
+     ALit
+};
+
+ALit: Aexpr = {
+      <n:Num> => AExpr => AInt(n),
+      <x:Var> => AExpr => AVar(x),
+      "(" <e:Add> ")" => e
+};
+
+Var: String = <x:r"['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9']*"> => x;
+
+Num: i32 = <n:r"['0'-'9']+"> => n
