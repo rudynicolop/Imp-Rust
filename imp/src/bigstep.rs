@@ -5,10 +5,6 @@ use std::result::Result;
 
 type Store = HashMap<String, i32>;
 
-fn deref_option<T: Copy>(o: Option<&T>) -> Option<T> {
-    m! { t <- o; Option::Some(*t) }
-}
-
 fn aop_eval(o: Aop, z1: i32, z2: i32) -> i32 {
     match o {
         Aop::Add => z1 + z2,
@@ -34,7 +30,7 @@ fn bop_eval(o: Bop, b1: bool, b2: bool) -> bool {
 fn aeval(s: &Store, e: &Aexpr) -> Result<i32, String> {
     match e {
         Aexpr::Int(z) => Result::Ok(*z),
-        Aexpr::Var(x) => deref_option(s.get(x)).ok_or("Unbound variable".into()),
+        Aexpr::Var(x) => s.get(x).copied().ok_or("Unbound variable".into()),
         Aexpr::Op(o, e1, e2) => m! {
             z1 <- aeval(s,e1);
             z2 <- aeval(s,e2);
