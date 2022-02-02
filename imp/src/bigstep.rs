@@ -2,7 +2,21 @@ use crate::syntax::{Aexpr, Aop, Bexpr, Bop, Cmd, Cop};
 use std::collections::HashMap;
 use std::result::Result;
 
-type Store = HashMap<String, i32>;
+#[derive(Default)]
+struct Store(HashMap<String, i32>);
+
+impl Store {
+    fn get(&self, var: &str) -> Result<i32, String> {
+        self.0
+            .get(var)
+            .copied()
+            .ok_or_else(|| String::from("Unbound variable"))
+    }
+
+    fn insert(&mut self, var: &str, value: i32) {
+        self.0.insert(String::from(var), value);
+    }
+}
 
 fn aop_eval(o: Aop, z1: i32, z2: i32) -> i32 {
     match o {
@@ -29,7 +43,7 @@ fn bop_eval(o: Bop, b1: bool, b2: bool) -> bool {
 fn aeval(s: &Store, e: &Aexpr) -> Result<i32, String> {
     match e {
         Aexpr::Int(z) => Result::Ok(*z),
-        Aexpr::Var(x) => s.get(x).copied().ok_or("Unbound variable".into()),
+        Aexpr::Var(x) => s.get(x),
         Aexpr::Op(o, e1, e2) => {
             let z1 = aeval(s, e1)?;
             let z2 = aeval(s, e2)?;
@@ -59,7 +73,7 @@ fn eval(s: &mut Store, c: &Cmd) -> Result<(), String> {
         Cmd::Skip => Result::Ok(()),
         Cmd::Ass(x, e) => {
             let z = aeval(s, e)?;
-            Result::Ok(drop(s.insert(x.clone(), z)))
+            Result::Ok(s.insert(x, z))
         }
         Cmd::Seq(c1, c2) => {
             let _ = eval(s, c1)?;
