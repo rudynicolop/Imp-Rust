@@ -9,10 +9,6 @@ fn deref_option<T: Copy>(o: Option<&T>) -> Option<T> {
     m! { t <- o; Option::Some(*t) }
 }
 
-fn ignore<A>(_: A) -> () {
-    ()
-}
-
 fn aop_eval(o: Aop, z1: i32, z2: i32) -> i32 {
     match o {
         Aop::Add => z1 + z2,
@@ -68,7 +64,7 @@ fn eval(s: &mut Store, c: &Cmd) -> Result<(), String> {
         Cmd::Skip => Result::Ok(()),
         Cmd::Ass(x, e) => m! {
             z <- aeval(s,e);
-            Result::Ok(ignore(s.insert(x.clone(),z)))
+            Result::Ok(drop(s.insert(x.clone(),z)))
         },
         Cmd::Seq(c1, c2) => m! {
             _ <- eval(s,c1); eval(s,c2)
