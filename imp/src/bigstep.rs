@@ -1,6 +1,5 @@
 use crate::syntax::{Aexpr, Aop, Bexpr, Bop, Cmd, Cop};
 use std::collections::HashMap;
-use std::result::Result;
 
 #[derive(Default)]
 struct Store(HashMap<String, i32>);
@@ -49,12 +48,12 @@ impl Bop {
 impl Aexpr {
     fn eval(&self, s: &Store) -> Result<i32, String> {
         match self {
-            Aexpr::Int(z) => Result::Ok(*z),
+            Aexpr::Int(z) => Ok(*z),
             Aexpr::Var(x) => s.get(x),
             Aexpr::Op(o, e1, e2) => {
                 let z1 = e1.eval(s)?;
                 let z2 = e2.eval(s)?;
-                Result::Ok(o.eval(z1, z2))
+                Ok(o.eval(z1, z2))
             }
         }
     }
@@ -63,16 +62,16 @@ impl Aexpr {
 impl Bexpr {
     fn eval(&self, s: &Store) -> Result<bool, String> {
         match self {
-            Bexpr::Bool(b) => Result::Ok(*b),
+            Bexpr::Bool(b) => Ok(*b),
             Bexpr::Cop(o, e1, e2) => {
                 let z1 = e1.eval(s)?;
                 let z2 = e2.eval(s)?;
-                Result::Ok(o.eval(z1, z2))
+                Ok(o.eval(z1, z2))
             }
             Bexpr::Bop(o, e1, e2) => {
                 let b1 = e1.eval(s)?;
                 let b2 = e2.eval(s)?;
-                Result::Ok(o.eval(b1, b2))
+                Ok(o.eval(b1, b2))
             }
         }
     }
@@ -81,10 +80,10 @@ impl Bexpr {
 impl Cmd {
     fn eval(&self, s: &mut Store) -> Result<(), String> {
         match self {
-            Cmd::Skip => Result::Ok(()),
+            Cmd::Skip => Ok(()),
             Cmd::Ass(x, e) => {
                 let z = e.eval(s)?;
-                Result::Ok(s.insert(x, z))
+                Ok(s.insert(x, z))
             }
             Cmd::Seq(c1, c2) => {
                 let _ = c1.eval(s)?;
@@ -104,7 +103,7 @@ impl Cmd {
                     let _ = w.eval(s)?;
                     self.eval(s)
                 } else {
-                    Result::Ok(())
+                    Ok(())
                 }
             }
         }
