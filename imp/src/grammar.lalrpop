@@ -1,4 +1,4 @@
-use syntax::{Cmd,Bexpr,Cop,Bop,Aexpr,Aop};
+use crate::syntax::{Cmd,Bexpr,Cop,Bop,Aexpr,Aop};
 
 grammar;
 
@@ -21,18 +21,18 @@ Ass: Cmd = {
 };
 
 Or: Bexpr  = {
-    <e1:And> "or"  <e2:Or> => Bexpr::BOp(Bop::BOr,Box::new(e1),Box::new(e2)),
+    <e1:And> "or"  <e2:Or> => Bexpr::BBop(Bop::BOr,Box::new(e1),Box::new(e2)),
     And
 };
 
 And: Bexpr = {
-    <e1:Comp> "and" <e2:And> => Bexpr::BOp(Bop::BAnd,Box::new(e1),Box::new(e2)),
+    <e1:Comp> "and" <e2:And> => Bexpr::BBop(Bop::BAnd,Box::new(e1),Box::new(e2)),
     Comp
 };
 
 Comp: Bexpr = {
-      <e1:Add> "=?" <e2:Add> => Bexpr::COp(Cop::CEq,Box::new(e1),Box::new(e2)),
-      <e1:Add> "<?" <e2:Add> => Bexpr::COp(Cop::CLt,Box::new(e1),Box::new(e2)),
+      <e1:Add> "=?" <e2:Add> => Bexpr::BCop(Cop::CEq,Box::new(e1),Box::new(e2)),
+      <e1:Add> "<?" <e2:Add> => Bexpr::BCop(Cop::CLt,Box::new(e1),Box::new(e2)),
       BLit
 };
 
@@ -54,11 +54,11 @@ Mul: Aexpr = {
 };
 
 ALit: Aexpr = {
-      <n:Num> => AExpr => AInt(n),
-      <x:Var> => AExpr => AVar(x),
+      <n:Num> => Aexpr::AInt(n),
+      <x:Var> => Aexpr::AVar(x),
       "(" <e:Add> ")" => e
 };
 
-Var: String = <x:r"['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9']*"> => x;
+Var: String = <x:r"['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9']*"> => String::from(x);
 
-Num: i32 = <n:r"['0'-'9']+"> => n;
+Num: i32 = <n:r"['0'-'9']+"> => n.parse::<i32>().unwrap();
