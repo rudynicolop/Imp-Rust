@@ -26,7 +26,7 @@ Or: Bexpr  = {
 };
 
 And: Bexpr = {
-    <e1:Comp> "and" <e2:Or> => Bexpr::BOp(Bop::BAnd,Box::new(e1),Box::new(e2)),
+    <e1:Comp> "and" <e2:And> => Bexpr::BOp(Bop::BAnd,Box::new(e1),Box::new(e2)),
     Comp
 };
 
@@ -61,4 +61,4 @@ ALit: Aexpr = {
 
 Var: String = <x:r"['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9']*"> => x;
 
-Num: i32 = <n:r"['0'-'9']+"> => n
+Num: i32 = <n:r"['0'-'9']+"> => n;
