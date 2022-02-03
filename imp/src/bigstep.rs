@@ -1,88 +1,111 @@
-use std::result::Result;
+use crate::syntax::{Aexpr, Aop, Bexpr, Bop, Cmd, Cop};
 use std::collections::HashMap;
-use crate::syntax::{Aexpr,Aop,Bop,Cop,Bexpr,Cmd};
-use do_notation::m;
 
-type Store = HashMap<String,i32>;
+#[derive(Default)]
+struct Store(HashMap<String, i32>);
 
-fn deref_option <T:Copy> (o: Option<&T>) -> Option<T> {
-    m! { t <- o; Option::Some(*t) }
-}
+impl Store {
+    fn get(&self, var: &str) -> Result<i32, String> {
+        self.0
+            .get(var)
+            .copied()
+            .ok_or_else(|| String::from("Unbound variable"))
+    }
 
-fn ignore <A> (_ : A) -> () { () }
-
-fn aop_eval (o : Aop, z1 : i32, z2 : i32) -> i32 {
-    match o {
-	Aop::AAdd => z1 + z2,
-	Aop::ASub => z1 - z2,
-	Aop::AMul => z1 * z2
+    fn insert(&mut self, var: &str, value: i32) {
+        self.0.insert(String::from(var), value);
     }
 }
 
-fn cop_eval (o : Cop, z1 : i32, z2 : i32) -> bool {
-    match o {
-	Cop::CEq => z1 == z2,
-	Cop::CLt => z1 <  z2
+impl Aop {
+    fn eval(&self, z1: i32, z2: i32) -> i32 {
+        match self {
+            Aop::Add => z1 + z2,
+            Aop::Sub => z1 - z2,
+            Aop::Mul => z1 * z2,
+        }
     }
 }
 
-fn bop_eval (o : Bop, b1 : bool, b2 : bool) -> bool {
-    match o {
-	Bop::BAnd => b1 && b2,
-	Bop::BOr  => b1 || b2
+impl Cop {
+    fn eval(&self, z1: i32, z2: i32) -> bool {
+        match self {
+            Cop::Eq => z1 == z2,
+            Cop::Lt => z1 < z2,
+        }
     }
 }
 
-fn aeval (s : &Store, e : &Aexpr) -> Result<i32,String> {
-    match e {
-	Aexpr::AInt(z) => Result::Ok(*z),
-	Aexpr::AVar(x) =>
-	    deref_option(s.get(x)).ok_or("Unbound variable".into()),
-	Aexpr::AOp(o,e1,e2) => m! {
-	    z1 <- aeval(s,e1);
-	    z2 <- aeval(s,e2);
-	    Result::Ok(aop_eval(*o,z1,z2))
-	}
+impl Bop {
+    fn eval(&self, b1: bool, b2: bool) -> bool {
+        match self {
+            Bop::And => b1 && b2,
+            Bop::Or => b1 || b2,
+        }
     }
 }
 
-fn beval (s : &Store, e : &Bexpr) -> Result<bool,String> {
-    match e {
-	Bexpr::BBool(b) => Result::Ok(*b),
-	Bexpr::BCop(o,e1,e2) => m! {
-	    z1 <- aeval(s,e1);
-	    z2 <- aeval(s,e2);
-	    Result::Ok(cop_eval(*o,z1,z2))
-	},
-	Bexpr::BBop(o,e1,e2) => m! {
-	    b1 <- beval(s,e1);
-	    b2 <- beval(s,e2);
-	    Result::Ok(bop_eval(*o,b1,b2))
-	}
+impl Aexpr {
+    fn eval(&self, s: &Store) -> Result<i32, String> {
+        match self {
+            Aexpr::Int(z) => Ok(*z),
+            Aexpr::Var(x) => s.get(x),
+            Aexpr::Op(o, e1, e2) => {
+                let z1 = e1.eval(s)?;
+                let z2 = e2.eval(s)?;
+                Ok(o.eval(z1, z2))
+            }
+        }
     }
 }
 
-fn eval (s : &mut Store, c : &Cmd) -> Result<(),String> {
-    match c {
-	Cmd::CSkip => Result::Ok(()),
-	Cmd::CAss(x,e) => m! {
-	    z <- aeval(s,e);
-	    Result::Ok(ignore(s.insert(x.clone(),z)))
-	},
-	Cmd::CSeq(c1,c2) => m! {
-	    _ <- eval(s,c1); eval(s,c2)
-	},
-	Cmd::CIf(e,c1,c2) => m! {
-	    b <- beval(s,e);
-	    if b { eval(s,c1) } else { eval(s,c2) }
-	},
-	Cmd::CWhile(e,w) => m! {
-	    b <- beval(s,e);
-	    if b {
-		m! { _ <- eval(s,w); eval(s,c) }
-	    } else {
-		Result::Ok(())
-	    }
-	}
+impl Bexpr {
+    fn eval(&self, s: &Store) -> Result<bool, String> {
+        match self {
+            Bexpr::Bool(b) => Ok(*b),
+            Bexpr::Cop(o, e1, e2) => {
+                let z1 = e1.eval(s)?;
+                let z2 = e2.eval(s)?;
+                Ok(o.eval(z1, z2))
+            }
+            Bexpr::Bop(o, e1, e2) => {
+                let b1 = e1.eval(s)?;
+                let b2 = e2.eval(s)?;
+                Ok(o.eval(b1, b2))
+            }
+        }
+    }
+}
+
+impl Cmd {
+    fn eval(&self, s: &mut Store) -> Result<(), String> {
+        match self {
+            Cmd::Skip => Ok(()),
+            Cmd::Ass(x, e) => {
+                let z = e.eval(s)?;
+                Ok(s.insert(x, z))
+            }
+            Cmd::Seq(c1, c2) => {
+                let _ = c1.eval(s)?;
+                c2.eval(s)
+            }
+            Cmd::If(e, c1, c2) => {
+                let b = e.eval(s)?;
+                if b {
+                    c1.eval(s)
+                } else {
+                    c2.eval(s)
+                }
+            }
+            Cmd::While(e, w) => {
+                let b = e.eval(s)?;
+                if b {
+                    let _ = w.eval(s)?;
+                    self.eval(s)
+                } else {
+                    Ok(())
+                }
+            }
+        }
     }
 }
