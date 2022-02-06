@@ -2,10 +2,10 @@ use crate::syntax::{Aexpr, Aop, Bexpr, Bop, Cmd, Cop};
 use std::collections::HashMap;
 
 #[derive(Default)]
-struct Store(HashMap<String, i32>);
+pub struct Store(HashMap<String, i32>);
 
 impl Store {
-    fn new () -> Self { Store(HashMap::new()) }
+    pub fn new () -> Self { Store(HashMap::new()) }
     
     fn get(&self, var: &str) -> Result<i32, String> {
         self.0
@@ -80,7 +80,7 @@ impl Bexpr {
 }
 
 impl Cmd {
-    fn eval(&self, s: &mut Store) -> Result<(), String> {
+    pub fn eval(&self, s: &mut Store) -> Result<(), String> {
         match self {
             Cmd::Skip => Ok(()),
             Cmd::Ass(x, e) => {

@@ -1,14 +1,15 @@
 use std::{env,fs};
-mod lib;
+use imp::{grammar,bigstep};
 
 fn main() -> Result<(),String> {
     let args : Vec<String> = env::args().collect();
     match fs::read_to_string(&args[0]) {
 	Ok(prog) => {
-	    let ast : syntax::cmd =
-		imp::grammar::SeqParser::new().parse(prog)?;
-	    ast.eval(bigstep::Store::new())
+	    match grammar::SeqParser::new().parse(&prog) {
+		Ok(ast) => ast.eval(&mut bigstep::Store::new()),
+		Err(_)  => Err(String::from("Could not parse program."))
+	    }
 	},
-	Err(err) => Err(String::from("problem"))
+	Err(_) => Err(String::from("Could not read file."))
     }
 }
