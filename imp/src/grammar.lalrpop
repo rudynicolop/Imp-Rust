@@ -17,7 +17,8 @@ Ctrl: Cmd = {
 
 Ass: Cmd = {
      <x:Var> ":=" <e:Add> => Cmd::Ass(x,Box::new(e)),
-     "skip"         => Cmd::Skip
+     "print" <e:Add>      => Cmd::Print(Box::new(e)),
+     "skip"               => Cmd::Skip
 };
 
 Or: Bexpr  = {
@@ -59,6 +60,6 @@ ALit: Aexpr = {
       "(" <e:Add> ")" => e
 };
 
-Var: String = <x:r"['a'-'z' 'A'-'Z'] ['a'-'z' 'A'-'Z' '0'-'9']*"> => String::from(x);
+Var: String = <x:r"[a-z]+"> => String::from(x);
 
-Num: i32 = <n:r"['0'-'9']+"> => n.parse::<i32>().unwrap();
+Num: i32 = <n:r"[0-9]+"> => n.parse::<i32>().unwrap();

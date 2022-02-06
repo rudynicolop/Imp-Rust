@@ -38,6 +38,7 @@ pub enum Bexpr {
 pub enum Cmd {
     Skip,
     Ass(String, Box<Aexpr>),
+    Print(Box<Aexpr>),
     Seq(Box<Cmd>, Box<Cmd>),
     If(Box<Bexpr>, Box<Cmd>, Box<Cmd>),
     While(Box<Bexpr>, Box<Cmd>),
