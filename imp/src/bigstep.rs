@@ -5,6 +5,8 @@ use std::collections::HashMap;
 struct Store(HashMap<String, i32>);
 
 impl Store {
+    fn new () -> Self { Store(HashMap::new()) }
+    
     fn get(&self, var: &str) -> Result<i32, String> {
         self.0
             .get(var)
