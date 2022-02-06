@@ -1,17 +1,27 @@
 use crate::syntax::{Aexpr, Aop, Bexpr, Bop, Cmd, Cop};
-use std::collections::HashMap;
+use std::{fmt, collections::HashMap};
 
-#[derive(Default)]
+// TODO, other errors.
+pub enum Error {
+    UnboundVariable(String)
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	match self {
+	    Error::UnboundVariable(x) =>
+		write!(f, "Unbound Variable {}", x)
+	}
+    }
+}
+
 pub struct Store(HashMap<String, i32>);
 
 impl Store {
     pub fn new () -> Self { Store(HashMap::new()) }
     
-    fn get(&self, var: &str) -> Result<i32, String> {
-        self.0
-            .get(var)
-            .copied()
-            .ok_or_else(|| String::from("Unbound variable"))
+    fn get(&self, var: &str) -> Option<i32> {
+        self.0.get(var).copied()
     }
 
     fn insert(&mut self, var: &str, value: i32) {
@@ -48,10 +58,12 @@ impl Bop {
 }
 
 impl Aexpr {
-    fn eval(&self, s: &Store) -> Result<i32, String> {
+    fn eval(&self, s: &Store) -> Result<i32, Error> {
         match self {
             Aexpr::Int(z) => Ok(*z),
-            Aexpr::Var(x) => s.get(x),
+            Aexpr::Var(x) =>
+		s.get(x)
+		.ok_or(Error::UnboundVariable(String::from(x))),
             Aexpr::Op(o, e1, e2) => {
                 let z1 = e1.eval(s)?;
                 let z2 = e2.eval(s)?;
@@ -62,7 +74,7 @@ impl Aexpr {
 }
 
 impl Bexpr {
-    fn eval(&self, s: &Store) -> Result<bool, String> {
+    fn eval(&self, s: &Store) -> Result<bool, Error> {
         match self {
             Bexpr::Bool(b) => Ok(*b),
             Bexpr::Cop(o, e1, e2) => {
@@ -80,7 +92,7 @@ impl Bexpr {
 }
 
 impl Cmd {
-    pub fn eval(&self, s: &mut Store) -> Result<(), String> {
+    pub fn eval(&self, s: &mut Store) -> Result<(), Error> {
         match self {
             Cmd::Skip => Ok(()),
             Cmd::Ass(x, e) => {
