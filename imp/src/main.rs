@@ -6,10 +6,21 @@ fn main() -> Result<(),String> {
     match fs::read_to_string(&args[1]) {
 	Ok(prog) => {
 	    match grammar::SeqParser::new().parse(&prog) {
-		Ok(ast) => ast.eval(&mut bigstep::Store::new()),
-		Err(_)  => Err(String::from("Could not parse program."))
+		Ok(ast) => {
+		    println!("Program parsed as");
+		    println!("{}",ast);
+		    println!("Executing program");
+		    ast.eval(&mut bigstep::Store::new())
+		}
+		Err(err)  => {
+		    println!("{}",err);
+		    Err(String::from("Failed to parse."))
+		}
 	    }
 	},
-	Err(_) => Err(String::from("Could not read file."))
+	Err(err) => {
+	    println!("{}",err);
+	    Err(String::from("File not found."))
+	}
     }
 }

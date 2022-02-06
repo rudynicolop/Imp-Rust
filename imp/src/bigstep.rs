@@ -89,7 +89,8 @@ impl Cmd {
             }
 	    Cmd::Print(e) => {
 		let z = e.eval(s)?;
-		Ok(println!("{}",z))
+		println!("{}",z);
+		Ok(())
 	    }
             Cmd::Seq(c1, c2) => {
                 let _ = c1.eval(s)?;
