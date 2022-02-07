@@ -4,3 +4,4 @@ lalrpop_mod!(pub grammar);
 
 pub mod bigstep;
 pub mod syntax;
+pub mod lexer;
