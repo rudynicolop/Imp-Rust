@@ -1,7 +1,6 @@
 use crate::syntax::{Aexpr, Aop, Bexpr, Bop, Cmd, Cop};
 use std::{fmt, collections::HashMap};
 
-// TODO, other errors.
 pub enum Error {
     UnboundVariable(String)
 }

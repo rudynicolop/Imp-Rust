@@ -1,65 +1,89 @@
-use crate::syntax::{Cmd,Bexpr,Cop,Bop,Aexpr,Aop};
+use crate::{syntax::{Cmd,Bexpr,Cop,Bop,Aexpr,Aop}, lexer::{Token,BadLex}};
 
 grammar;
 
+extern {
+       type Location = usize;
+       type Error = BadLex;
+
+       enum Token {
+           LBRACE => Token::LBRACE,
+	   RBRACE => Token::RBRACE,
+	   LPAREN => Token::LPAREN,
+	   RPAREN => Token::RPAREN,
+	   SEMICOLON => Token::SEMICOLON,
+	   IF => Token::IF,
+	   ELSE => Token::ELSE,
+	   WHILE => Token::WHILE,
+	   ASGN => Token::ASGN,
+	   PRINT => Token::PRINT,
+	   SKIP => Token::SKIP,
+	   OR => Token::OR,
+	   AND => Token::AND,
+	   EQ => Token::EQ,
+	   LT => Token::LT,
+	   ADD => Token::ADD,
+	   SUB => Token::SUB,
+	   MUL => Token::MUL,
+	   BOOL => Token::BOOL(<bool>),
+	   NUM => Token::NUM(<i32>),
+	   VAR => Token::VAR(<String>)
+	   }
+}
+
 pub Seq: Cmd = {
-    <c1:Ctrl> ";" <c2:Seq> => Cmd::Seq(Box::new(c1),Box::new(c2)),
+    <c1:Ctrl> SEMICOLON <c2:Seq> => Cmd::Seq(Box::new(c1),Box::new(c2)),
     Ctrl
 };
 
 Ctrl: Cmd = {
-      "if" <e:Or> "{" <c1:Seq> "}" "else" "{" <c2:Seq> "}"
+      IF <e:Or> LBRACE <c1:Seq> RBRACE ELSE LBRACE <c2:Seq> RBRACE
           => Cmd::If(Box::new(e),Box::new(c1),Box::new(c2)),
-      "while" <e:Or> "{" <c:Seq> "}"
+      WHILE <e:Or> LBRACE <c:Seq> RBRACE
           => Cmd::While(Box::new(e),Box::new(c)),
       Ass
 };
 
 Ass: Cmd = {
-     <x:Var> ":=" <e:Add> => Cmd::Ass(x,Box::new(e)),
-     "print" <e:Add>      => Cmd::Print(Box::new(e)),
-     "skip"               => Cmd::Skip
+     <x:VAR> ASGN <e:Add> => Cmd::Ass(x,Box::new(e)),
+     PRINT <e:Add>      => Cmd::Print(Box::new(e)),
+     SKIP               => Cmd::Skip
 };
 
 Or: Bexpr  = {
-    <e1:And> "or"  <e2:Or> => Bexpr::Bop(Bop::Or,Box::new(e1),Box::new(e2)),
+    <e1:And> OR <e2:Or> => Bexpr::Bop(Bop::Or,Box::new(e1),Box::new(e2)),
     And
 };
 
 And: Bexpr = {
-    <e1:Comp> "and" <e2:And> => Bexpr::Bop(Bop::And,Box::new(e1),Box::new(e2)),
+    <e1:Comp> AND <e2:And> => Bexpr::Bop(Bop::And,Box::new(e1),Box::new(e2)),
     Comp
 };
 
 Comp: Bexpr = {
-      <e1:Add> "=?" <e2:Add> => Bexpr::Cop(Cop::Eq,Box::new(e1),Box::new(e2)),
-      <e1:Add> "<?" <e2:Add> => Bexpr::Cop(Cop::Lt,Box::new(e1),Box::new(e2)),
+      <e1:Add> EQ <e2:Add> => Bexpr::Cop(Cop::Eq,Box::new(e1),Box::new(e2)),
+      <e1:Add> LT <e2:Add> => Bexpr::Cop(Cop::Lt,Box::new(e1),Box::new(e2)),
       BLit
 };
 
 BLit: Bexpr = {
-      "true"  => Bexpr::Bool(true),
-      "false" => Bexpr::Bool(false),
-      "(" <e:Or> ")" => e
+      <b:BOOL> => Bexpr::Bool(b),
+      LPAREN <e:Or> RPAREN => e
 };
 
 Add: Aexpr = {
-     <e1:Add> "+" <e2:Mul> => Aexpr::Op(Aop::Add,Box::new(e1),Box::new(e2)),
-     <e1:Add> "-" <e2:Mul> => Aexpr::Op(Aop::Sub,Box::new(e1),Box::new(e2)),
+     <e1:Add> ADD <e2:Mul> => Aexpr::Op(Aop::Add,Box::new(e1),Box::new(e2)),
+     <e1:Add> SUB <e2:Mul> => Aexpr::Op(Aop::Sub,Box::new(e1),Box::new(e2)),
      Mul
 };
 
 Mul: Aexpr = {
-     <e1:Mul> "*" <e2:ALit> => Aexpr::Op(Aop::Mul,Box::new(e1),Box::new(e2)),
+     <e1:Mul> MUL <e2:ALit> => Aexpr::Op(Aop::Mul,Box::new(e1),Box::new(e2)),
      ALit
 };
 
 ALit: Aexpr = {
-      <n:Num> => Aexpr::Int(n),
-      <x:Var> => Aexpr::Var(x),
-      "(" <e:Add> ")" => e
+      <n:NUM> => Aexpr::Int(n),
+      <x:VAR> => Aexpr::Var(x),
+      LPAREN <e:Add> RPAREN => e
 };
-
-Var: String = <x:r"[a-z]+"> => String::from(x);
-
-Num: i32 = <n:r"[0-9]+"> => n.parse::<i32>().unwrap();

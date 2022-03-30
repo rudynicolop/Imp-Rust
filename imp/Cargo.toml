@@ -9,4 +9,4 @@ lalrpop = "0.19.7"
 
 [dependencies]
 lalrpop-util = "0.19.7"
-regex = "1"
+peeking_take_while = "1.0.0"

@@ -1,12 +1,11 @@
 use std::{env,fs};
-use imp::{grammar,bigstep,syntax};
+use imp::{parser,bigstep,syntax};
 
 fn main() -> Result<(),()> {
     let args : Vec<String> = env::args().collect();
     let prog = fs::read_to_string(&args[1])
 	.map_err(|err| println!("File error: {}",err))?;
-    let ast: syntax::Cmd =
-	grammar::SeqParser::new().parse(&prog)
+    let ast: syntax::Cmd = parser::parse(&prog)
 	.map_err(|err| println!("Parsing error: {}",err))?;
     println!("Program parsed as");
     println!("{}",ast);

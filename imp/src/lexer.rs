@@ -1,5 +1,7 @@
 use std::{char, fmt, str::CharIndices, iter::Iterator};
+use peeking_take_while::PeekableExt;
 
+#[derive(Clone,Debug)]
 pub enum Token {
     LBRACE,
     RBRACE,
@@ -62,6 +64,8 @@ fn token_of_string (s : &str) -> Token {
 	"skip"  => Token::SKIP,
 	"and"   => Token::AND,
 	"or"    => Token::OR,
+	"true"  => Token::BOOL (true),
+	"false" => Token::BOOL (false),
 	_       => Token::VAR (s.to_string())
     }
 }
@@ -70,7 +74,8 @@ fn token_of_string (s : &str) -> Token {
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
-// Lexical errors.
+/// Lexical errors.
+#[derive(Debug)]
 pub enum BadLex {
     NonTokenChar(usize,char),
     ExpectedChar(usize,char,char),
@@ -127,18 +132,22 @@ impl<'a> Iterator for Lexer<'a> {
 			}
 		    },
 		    _ => {
-			if c.is_numeric() {
+			if c.is_ascii_digit() {
 			    let mut num = c.to_string();
-			    self.chars.by_ref()
-				.take_while(|ch| ch.1.is_numeric())
+			    self.chars
+				.by_ref()
+				.peekable()
+				.peeking_take_while(|ch| ch.1.is_ascii_digit)
 				.for_each(|ch| num.push(ch.1));
 			    num.parse::<i32>()
 				.map_err(|err| BadLex::Internal(i,err))
 				.map(|z| (i,Token::NUM(z),i + num.len()))
 			} else if c.is_alphabetic() {
 			    let mut s = c.to_string();
-			    self.chars.by_ref()
-				.take_while(|ch| ch.1.is_alphanumeric())
+			    self.chars
+				.by_ref()
+				.peekable()
+				.peeking_take_while(|ch| ch.1.is_alphanumeric())
 				.for_each(|ch| s.push(ch.1));
 			    Ok ((i,token_of_string(&s),i + s.len()))
 			} else {
