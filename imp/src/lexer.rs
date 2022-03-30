@@ -1,4 +1,4 @@
-use std::{fmt, str::CharIndices, iter::Iterator};
+use std::{char, fmt, str::CharIndices, iter::Iterator};
 
 pub enum Token {
     LBRACE,
@@ -53,16 +53,16 @@ impl fmt::Display for Token {
     }
 }
 
-fn keyword_of_string (s : &String) -> Option<Token> {
+fn token_of_string (s : &str) -> Token {
     match s {
-	"if"    => Some (Token::IF),
-	"else"  => Some (Token::ELSE),
-	"while" => Some (Token::WHILE),
-	"print" => Some (Token::PRINT),
-	"skip"  => Some (Token::SKIP),
-	"and"   => Some (Token::AND),
-	"or"    => Some (Token::OR),
-	_       => None
+	"if"    => Token::IF,
+	"else"  => Token::ELSE,
+	"while" => Token::WHILE,
+	"print" => Token::PRINT,
+	"skip"  => Token::SKIP,
+	"and"   => Token::AND,
+	"or"    => Token::OR,
+	_       => Token::VAR (s.to_string())
     }
 }
 
@@ -73,7 +73,8 @@ pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 // Lexical errors.
 pub enum BadLex {
     NonTokenChar(usize,char),
-    UnexpectedToken(usize,char,char)
+    ExpectedChar(usize,char,char),
+    Internal(usize,std::num::ParseIntError)
 }
 
 pub struct Lexer<'input> {
@@ -91,53 +92,61 @@ impl<'a> Iterator for Lexer<'a> {
     
     fn next(&mut self) -> Option<Self::Item> {
 	loop {
-	    if let (Some(i,c)) = self.chars.next() {
-		return match c {
-		    '{' => Some (Ok ((i,Token::LBRACE,i+1))),
-		    '}' => Some (Ok ((i,Token::RBRACE,i+1))),
-		    '(' => Some (Ok ((i,Token::LPAREN,i+1))),
-		    ')' => Some (Ok ((i,Token::RPAREN,i+1))),
-		    ';' => Some (Ok ((i,Token::SEMICOLON,i+1))),
-		    '+' => Some (Ok ((i,Token::ADD,i+1))),
-		    '*' => Some (Ok ((i,Token::MUL,i+1))),
-		    '-' => Some (Ok ((i,Token::SUB,i+1))),
+	    if let Some((i,c)) = self.chars.next() {
+		// Check whitespace.
+		if c.is_whitespace() { continue }
+		
+		return Some (match c {
+		    '{' => Ok ((i,Token::LBRACE,i+1)),
+		    '}' => Ok ((i,Token::RBRACE,i+1)),
+		    '(' => Ok ((i,Token::LPAREN,i+1)),
+		    ')' => Ok ((i,Token::RPAREN,i+1)),
+		    ';' => Ok ((i,Token::SEMICOLON,i+1)),
+		    '+' => Ok ((i,Token::ADD,i+1)),
+		    '*' => Ok ((i,Token::MUL,i+1)),
+		    '-' => Ok ((i,Token::SUB,i+1)),
 		    ':' => {
-			if let (Some(_,'=')) = self.chars.next() {
-			    Some (Ok ((i,Token::ASGN,i+2)))
+			if let Some((_,'=')) = self.chars.next() {
+			    Ok ((i,Token::ASGN,i+2))
 			} else {
-			    Some (BadLex::UnexpectedToken ((i,':','=')))
+			    Err (BadLex::ExpectedChar (i,':','='))
 			}
 		    },
 		    '<' => {
-			if let (Some(_,'?')) = self.chars.next() {
-			    Some (Ok ((i,Token::LT,i+2)))
+			if let Some((_,'?')) = self.chars.next() {
+			    Ok ((i,Token::LT,i+2))
 			} else {
-			    Some (BadLex::UnexpectedToken ((i,'<','?')))
+			    Err (BadLex::ExpectedChar (i,'<','?'))
+			}
+		    },
+		    '=' => {
+			if let Some((_,'?')) = self.chars.next() {
+			    Ok ((i,Token::EQ,i+2))
+			} else {
+			    Err (BadLex::ExpectedChar (i,'=','?'))
+			}
+		    },
+		    _ => {
+			if c.is_numeric() {
+			    let mut num = c.to_string();
+			    self.chars.by_ref()
+				.take_while(|ch| ch.1.is_numeric())
+				.for_each(|ch| num.push(ch.1));
+			    num.parse::<i32>()
+				.map_err(|err| BadLex::Internal(i,err))
+				.map(|z| (i,Token::NUM(z),i + num.len()))
+			} else if c.is_alphabetic() {
+			    let mut s = c.to_string();
+			    self.chars.by_ref()
+				.take_while(|ch| ch.1.is_alphanumeric())
+				.for_each(|ch| s.push(ch.1));
+			    Ok ((i,token_of_string(&s),i + s.len()))
+			} else {
+			    Err (BadLex::NonTokenChar(i,c))
 			}
 		    }
-			
-		}
-	    } else {
-		return None
-	    }
-	    
-	    match self.chars.next() {
-		
-		Some((i,'{')) => return Some (Ok (i,Token::LBRACE,i+1))),
-		Some((i,'}')) => return Some (Ok (i,Token::RBRACE,i+1))),
-		Some((i,'(')) => return Some (Ok (i,Token::LPAREN,i+1))),
-		Some((i,')')) => return Some (Ok (i,Token::RPAREN,i+1))),
-		Some((i,';')) => return Some (Ok (i,Token::SEMICOLON,i+1))),
-		Some((i,'+')) => return Some (Ok ((i,Token::ADD,i+1))),
-		Some((i,'*')) => return Some (Ok ((i,Token::MUL,i+1))),
-		Some((i,'-')) => return Some (Ok ((i,Token::SUB,i+1))),
-		Some((i,c)) => {
-		    if c.is_ascii_whitespace {
-			continue
-		    } else {
-			return Some (Error (NonTokenChar ((i,c))))
-		    }
-	    }
+		})
+	    } else { return None }
 	}
     }
 }
