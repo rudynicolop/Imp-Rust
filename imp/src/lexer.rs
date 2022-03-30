@@ -53,13 +53,35 @@ impl fmt::Display for Token {
     }
 }
 
+fn keyword_of_string (s : &String) -> Option<Token> {
+    match s {
+	"if"    => Some (Token::IF),
+	"else"  => Some (Token::ELSE),
+	"while" => Some (Token::WHILE),
+	"print" => Some (Token::PRINT),
+	"skip"  => Some (Token::SKIP),
+	"and"   => Some (Token::AND),
+	"or"    => Some (Token::OR),
+	_       => None
+    }
+}
+
+fn keysymbol_of_string (s : &String) -> Option<Token> {
+    match s {
+	":="    => Some (Token::ASGN),
+	"=?"    => Some (Token::EQ),
+	"<?"    => Some (Token::LT),
+	_       => None
+    }
+}
+
 // The following is stolen from the [LALRPOP] tutorial.
 
 pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
 
 // Lexical errors.
 pub enum Error {
-    NoToken(String)
+    NonTokenChar(usize,char)
 }
 
 pub struct Lexer<'input> {
@@ -80,7 +102,7 @@ impl<'input> Lexer<'input> {
 	self.next()
     }
      */
-
+    /*
     fn match_token_helper(&self,pair : (usize,char)) -> Option(usize,Token,usize) {
 	let i = pair.0;
 	match pair.1 {
@@ -121,7 +143,7 @@ impl<'input> Lexer<'input> {
 	    
 	}
     }
-    
+    */
     /// Returns an optional end index and symbol token.
     /// Advances the cursor.
     pub fn match_token(&self) -> Option<(usize,Token,usize)> {
@@ -148,21 +170,28 @@ impl<'a> Iterator for Lexer<'a> {
     
     fn next(&mut self) -> Option<Self::Item> {
 	loop {
-	    match self.chars.peek() {
-		None          => return None, // EOF
-		Some((_, ' ')) |
-		Some((_, '\n')) |
-		Some((_, '\t')) => continue, // whitespace
-		Some((i,'{')) => Some ((i,Token::LBRACE,i+1)),
-		Some((i,'}')) => Some ((i,Token::RBRACE,i+1)),
-		Some((i,'(')) => Some ((i,Token::LPAREN,i+1)),
-		Some((i,')')) => Some ((i,Token::RPAREN,i+1)),
-		Some((i,';')) => Some ((i,Token::SEMICOLON,i+1)),
-		Some((i,'+')) => Some ((i,Token::ADD,i+1)),
-		Some((i,'*')) => Some ((i,Token::MUL,i+1)),
-		Some((i,'-')) => Some ((i,Token::SUB,i+1)),
-		Some()
-		_ => continue
+	    if let (Some(i,c)) = self.chars.next() {
+		
+	    } else {
+		return None
+	    }
+	    
+	    match self.chars.next() {
+		
+		Some((i,'{')) => return Some (Ok (i,Token::LBRACE,i+1))),
+		Some((i,'}')) => return Some (Ok (i,Token::RBRACE,i+1))),
+		Some((i,'(')) => return Some (Ok (i,Token::LPAREN,i+1))),
+		Some((i,')')) => return Some (Ok (i,Token::RPAREN,i+1))),
+		Some((i,';')) => return Some (Ok (i,Token::SEMICOLON,i+1))),
+		Some((i,'+')) => return Some (Ok ((i,Token::ADD,i+1))),
+		Some((i,'*')) => return Some (Ok ((i,Token::MUL,i+1))),
+		Some((i,'-')) => return Some (Ok ((i,Token::SUB,i+1))),
+		Some((i,c)) => {
+		    if c.is_ascii_whitespace {
+			continue
+		    } else {
+			return Some (Error (NonTokenChar ((i,c))))
+		    }
 	    }
 	}
     }
