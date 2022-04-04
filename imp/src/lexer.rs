@@ -26,8 +26,39 @@ pub enum Token {
     VAR(String)
 }
 
+impl Token {
+    /// Lexical length of a token.
+    fn len(&self) -> usize {
+	use Token::*;
+	match self {
+	    LBRACE |
+	    BRACE  |
+	    LPAREN |
+	    RPAREN |
+	    ADD    |
+	    SUB    |
+	    MUL    |
+	    SEMICOLON => 1
+	    OR  |
+	    EQ  |
+	    LT  |
+	    IF  |
+	    ASGN => 2,
+	    AND  => 3,
+	    ELSE |
+	    SKIP |
+	    BOOL (true) => 4,
+	    WHILE |
+	    PRINT |
+	    BOOL (false) => 5,
+	    NUM(z) => z.to_string().len()
+	    VAR(x) => x.len()
+	}
+    }
+}
+
 impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    pub fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 	use Token::*;
 	match self {
 	    LBRACE    => write!(f,"{}","{"),
@@ -70,9 +101,17 @@ fn token_of_string (s : &str) -> Token {
     }
 }
 
-// The following is stolen from the [LALRPOP] tutorial.
+pub struct InfoToken {
+    line_no : usize,   /// line number
+    column_no : usize, /// column number
+    token : Token
+}
 
-pub type Spanned<Tok, Loc, Error> = Result<(Loc, Tok, Loc), Error>;
+impl InfoToken {
+    pub fn new(line_no:usize, col_no:usize, tok:token) -> Self {
+	{line_no=lin_no, column_no=col_no, token=tok}
+    }
+}
 
 /// Lexical errors.
 #[derive(Debug)]
@@ -82,8 +121,11 @@ pub enum BadLex {
     Internal(usize,std::num::ParseIntError)
 }
 
+pub type Spanned = Result<InfoToken, Error>;
+
 pub struct Lexer<'input> {
-    chars : Peekable<CharIndices<'input>>
+    chars : Peekable<CharIndices<'input>>;
+    current_line_no : usize
 }
 
 impl<'input> Lexer<'input> {
@@ -93,7 +135,7 @@ impl<'input> Lexer<'input> {
 }
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Spanned<Token, usize, BadLex>;
+    type Item = Spanned;
     
     fn next(&mut self) -> Option<Self::Item> {
 	loop {
@@ -102,7 +144,7 @@ impl<'a> Iterator for Lexer<'a> {
 		if c.is_whitespace() { continue }
 		
 		return Some (match c {
-		    '{' => Ok ((i,Token::LBRACE,i+1)),
+		    '{' => Ok (InfoToken::(i,Token::LBRACE,i+1)),
 		    '}' => Ok ((i,Token::RBRACE,i+1)),
 		    '(' => Ok ((i,Token::LPAREN,i+1)),
 		    ')' => Ok ((i,Token::RPAREN,i+1)),
