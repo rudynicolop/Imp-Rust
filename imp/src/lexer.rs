@@ -32,13 +32,13 @@ impl Token {
 	use Token::*;
 	match self {
 	    LBRACE |
-	    BRACE  |
+	    RBRACE |
 	    LPAREN |
 	    RPAREN |
 	    ADD    |
 	    SUB    |
 	    MUL    |
-	    SEMICOLON => 1
+	    SEMICOLON => 1,
 	    OR  |
 	    EQ  |
 	    LT  |
@@ -51,14 +51,14 @@ impl Token {
 	    WHILE |
 	    PRINT |
 	    BOOL (false) => 5,
-	    NUM(z) => z.to_string().len()
+	    NUM(z) => z.to_string().len(),
 	    VAR(x) => x.len()
 	}
     }
 }
 
 impl fmt::Display for Token {
-    pub fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 	use Token::*;
 	match self {
 	    LBRACE    => write!(f,"{}","{"),
@@ -101,38 +101,45 @@ fn token_of_string (s : &str) -> Token {
     }
 }
 
-pub struct InfoToken {
-    line_no : usize,   /// line number
-    column_no : usize, /// column number
-    token : Token
+pub struct Info <A> {
+    line_no : usize,   // line number
+    column_no : usize, // column start number
+    item : A
 }
 
-impl InfoToken {
-    pub fn new(line_no:usize, col_no:usize, tok:token) -> Self {
-	{line_no=lin_no, column_no=col_no, token=tok}
+impl <A> Info <A> {
+    pub fn new(line_no:usize, col_no:usize, a:A) -> Self {
+	Info { line_no:line_no, column_no:col_no, item:a }
     }
 }
 
 /// Lexical errors.
 #[derive(Debug)]
 pub enum BadLex {
-    NonTokenChar(usize,char),
-    ExpectedChar(usize,char,char),
-    Internal(usize,std::num::ParseIntError)
+    NonTokenChar(char),
+    ExpectedChar(char,char),
+    Internal(std::num::ParseIntError)
 }
 
-pub type Spanned = Result<InfoToken, Error>;
-
 pub struct Lexer<'input> {
-    chars : Peekable<CharIndices<'input>>;
-    current_line_no : usize
+    chars : Peekable<CharIndices<'input>>,
+    curr_line_no : usize // current line.
 }
 
 impl<'input> Lexer<'input> {
     pub fn new(input: &'input str) -> Self {
-        Lexer { chars: input.char_indices().peekable() }
+        Lexer { chars: input.char_indices().peekable(),
+		curr_line_no: 0 }
+    }
+
+    pub fn new_info <A> (self, col_no:usize, a:A) -> Info <A> {
+	Info::new
+	    (self.curr_line_no + 1,
+	     col_no - self.curr_line_no, a)
     }
 }
+
+pub type Spanned = Result<Info<Token>, Info<BadLex>>;
 
 impl<'a> Iterator for Lexer<'a> {
     type Item = Spanned;
@@ -140,37 +147,48 @@ impl<'a> Iterator for Lexer<'a> {
     fn next(&mut self) -> Option<Self::Item> {
 	loop {
 	    if let Some((i,c)) = self.chars.next() {
+
 		// Check whitespace.
-		if c.is_whitespace() { continue }
+		if c.is_whitespace() {
+		    if let '\n' = c {
+			// Increment line number
+			// when encountering a newline.
+			self.curr_line_no = self.curr_line_no + 1
+		    }
+		    continue
+		}
 		
 		return Some (match c {
-		    '{' => Ok (InfoToken::(i,Token::LBRACE,i+1)),
-		    '}' => Ok ((i,Token::RBRACE,i+1)),
-		    '(' => Ok ((i,Token::LPAREN,i+1)),
-		    ')' => Ok ((i,Token::RPAREN,i+1)),
-		    ';' => Ok ((i,Token::SEMICOLON,i+1)),
-		    '+' => Ok ((i,Token::ADD,i+1)),
-		    '*' => Ok ((i,Token::MUL,i+1)),
-		    '-' => Ok ((i,Token::SUB,i+1)),
+		    '{' => Ok (self.new_info(i,Token::LBRACE)),
+		    '}' => Ok (self.new_info(i,Token::RBRACE)),
+		    '(' => Ok (self.new_info(i,Token::LPAREN)),
+		    ')' => Ok (self.new_info(i,Token::RPAREN)),
+		    ';' => Ok (self.new_info(i,Token::SEMICOLON)),
+		    '+' => Ok (self.new_info(i,Token::ADD)),
+		    '*' => Ok (self.new_info(i,Token::MUL)),
+		    '-' => Ok (self.new_info(i,Token::SUB)),
 		    ':' => {
 			if let Some((_,'=')) = self.chars.next() {
-			    Ok ((i,Token::ASGN,i+2))
+			    Ok (self.new_info(i,Token::ASGN))
 			} else {
-			    Err (BadLex::ExpectedChar (i,':','='))
+			    Err (self.new_info
+				 (i, BadLex::ExpectedChar (':','=')))
 			}
 		    },
 		    '<' => {
 			if let Some((_,'?')) = self.chars.next() {
-			    Ok ((i,Token::LT,i+2))
+			    Ok (self.new_info(i,Token::LT))
 			} else {
-			    Err (BadLex::ExpectedChar (i,'<','?'))
+			    Err (self.new_info
+				 (i, BadLex::ExpectedChar ('<','?')))
 			}
 		    },
 		    '=' => {
 			if let Some((_,'?')) = self.chars.next() {
-			    Ok ((i,Token::EQ,i+2))
+			    Ok (self.new_info(i,Token::EQ))
 			} else {
-			    Err (BadLex::ExpectedChar (i,'=','?'))
+			    Err (self.new_info
+				 (i, BadLex::ExpectedChar ('=','?')))
 			}
 		    },
 		    _ => {
@@ -178,22 +196,24 @@ impl<'a> Iterator for Lexer<'a> {
 			    let mut num = c.to_string();
 			    self.chars
 				.by_ref()
-				// .peekable()
 				.peeking_take_while(|ch| ch.1.is_ascii_digit())
 				.for_each(|ch| num.push(ch.1));
 			    num.parse::<i32>()
-				.map_err(|err| BadLex::Internal(i,err))
-				.map(|z| (i,Token::NUM(z),i + num.len()))
+				.map_err
+				(|err|
+				 self.new_info(i, BadLex::Internal (err)))
+				.map
+				(|z|
+				 self.new_info(i, Token::NUM(z)))
 			} else if c.is_alphabetic() {
 			    let mut s = c.to_string();
 			    self.chars
 				.by_ref()
-				// .peekable()
 				.peeking_take_while(|ch| ch.1.is_alphanumeric())
 				.for_each(|ch| s.push(ch.1));
-			    Ok ((i,token_of_string(&s),i + s.len()))
+			    Ok (self.new_info(i,token_of_string(&s)))
 			} else {
-			    Err (BadLex::NonTokenChar(i,c))
+			    Err (self.new_info(i,BadLex::NonTokenChar(c)))
 			}
 		    }
 		})
