@@ -1,6 +1,6 @@
 use std::{env, path::{Path, PathBuf}};
 use imp::{lexer,parser,bigstep,syntax};
-use codespan{CodeMap, FileMap}
+use codespan::CodeMap;
 
 fn main() -> Result<(),()> {
     // Parse command-line arguments.
@@ -8,12 +8,12 @@ fn main() -> Result<(),()> {
 
     // Create path to get file.
     let path = Path::new(&args[1]);
-    let buf = PathBuf::new();
+    let mut buf = PathBuf::new();
     buf.push(path);
 
     // Create filemap.
-    let codemap = CodeMap::new();
-    let file = codemap.add_file_map_from_disk(buf)
+    let mut codemap = CodeMap::new();
+    let file = codemap.add_filemap_from_disk(buf)
 	.map_err(|err| println!("File error: {}",err))?;
 
     // Lex.
@@ -21,7 +21,7 @@ fn main() -> Result<(),()> {
 	.map_err(|err|
 		 println!(
 		     "Lexical error at line {} column {}: {}",
-		     err.0.0,err.0.1,err.1))?;
+		     err.0,err.1,err.2))?;
 
     // Parse.
     let ast: syntax::Cmd = parser::parse(tokens)

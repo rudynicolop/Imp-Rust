@@ -1,6 +1,6 @@
 use std::{char, fmt, sync::Arc, str::CharIndices, iter::{Iterator, Peekable}};
 use peeking_take_while::PeekableExt;
-use codespan::{FileMap, ByteIndex, ByteOffset};
+use codespan::{FileMap, ByteIndex, ByteOffset, LineIndex, ColumnIndex};
 
 #[derive(Clone,Debug)]
 pub enum Token {
@@ -116,21 +116,31 @@ pub enum BadLex {
     Internal(std::num::ParseIntError)
 }
 
+impl fmt::Display for BadLex {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	use BadLex::*;
+	match self {
+	    NonTokenChar(c) => write!(f,"No valid token includes {}.",c),
+	    ExpectedChar(c1,c2) => write!(f,"After {} expected {}.",c1,c2),
+	    Internal(err) => write!(f,"Implemtation error: {}.",err)
+	}
+    }
+}
+
 pub struct Lexer<'input> {
-    source : &'input FileMap, // source file.
     chars : Peekable<CharIndices<'input>> // characters to lex.
 }
 
 impl<'input> Lexer<'input> {
     pub fn new(source: &'input FileMap) -> Self {
-        Lexer { source: source,
-		chars: source.src().char_indices().peekable() }
+        Lexer { chars: source.src().char_indices().peekable() }
     }
 }
 
 pub fn spanned (i : usize, token : Token) -> Spanned {
+    let offset = token.len() as i64;
     (ByteIndex(i as u32), token,
-     ByteIndex(i as u32) + ByteOffset (token.len() as i64))
+     ByteIndex(i as u32) + ByteOffset (offset))
 }
 
 impl<'a> Iterator for Lexer<'a> {
@@ -203,17 +213,18 @@ impl<'a> Iterator for Lexer<'a> {
     }
 }
 
-fn tokenize(src : Arc<FileMap>)
-	    -> Result<Vec::<Spanned>, ((usize,usize),BadLex)> {
+pub fn tokenize(src : Arc<FileMap>)
+	    -> Result<Vec::<Spanned>, (u32, u32, BadLex)> {
     let mut tokens = Vec::new();
     let mut lexer = Lexer::new(&src);
     while let Some (result) = lexer.next() {
 	match result {
 	    Ok (sp) => tokens.push(sp),
 	    Err ((index, err)) => {
-		return Err
-		    ((src.location(index)
-		      .expect("Looking up bad index in file"),err))
+		let (LineIndex (row), ColumnIndex (col))
+		    = src.location(index)
+		    .expect("Looking up bad index in file");
+		return Err ((row, col, err))
 	    }
 	}
     }

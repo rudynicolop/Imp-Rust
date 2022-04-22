@@ -1,9 +1,9 @@
 use crate::{syntax::{Cmd,Bexpr,Cop,Bop,Aexpr,Aop}, lexer::{Token,BadLex}};
-
+use codespan::ByteIndex;
 grammar;
 
 extern {
-       type Location = usize;
+       type Location = ByteIndex;
        type Error = BadLex;
 
        enum Token {
