@@ -2,7 +2,7 @@ use std::{char, fmt, sync::Arc, str::CharIndices, iter::{Iterator, Peekable}};
 use peeking_take_while::PeekableExt;
 use codespan::{FileMap, ByteIndex, ByteOffset, LineIndex, ColumnIndex};
 
-#[derive(Clone,Debug)]
+#[derive(Clone)]
 pub enum Token {
     LBRACE,
     RBRACE,
@@ -59,6 +59,35 @@ impl Token {
 }
 
 impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+	use Token::*;
+	match self {
+	    LBRACE    => write!(f,"{}","{"),
+	    RBRACE    => write!(f,"{}","}"),
+	    LPAREN    => write!(f,"("),
+	    RPAREN    => write!(f,")"),
+	    SEMICOLON => write!(f,";"),
+	    IF        => write!(f,"if"),
+	    ELSE      => write!(f,"else"),
+	    WHILE     => write!(f,"while"),
+	    ASGN      => write!(f,":="),
+	    PRINT     => write!(f,"print"),
+	    SKIP      => write!(f,"skip"),
+	    OR        => write!(f,"or"),
+	    AND       => write!(f,"and"),
+	    EQ        => write!(f,"=?"),
+	    LT        => write!(f,"<?"),
+	    ADD       => write!(f,"+"),
+	    SUB       => write!(f,"-"),
+	    MUL       => write!(f,"*"),
+	    BOOL(b)   => write!(f,"{}",b),
+	    NUM(z)    => write!(f,"{}",z),
+	    VAR(x)    => write!(f,"{}",x)
+	}
+    }
+}
+
+impl fmt::Debug for Token {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 	use Token::*;
 	match self {
@@ -213,7 +242,7 @@ impl<'a> Iterator for Lexer<'a> {
     }
 }
 
-pub fn tokenize(src : Arc<FileMap>)
+pub fn tokenize(src : &Arc<FileMap>)
 	    -> Result<Vec::<Spanned>, (u32, u32, BadLex)> {
     let mut tokens = Vec::new();
     let mut lexer = Lexer::new(&src);

@@ -17,16 +17,15 @@ fn main() -> Result<(),()> {
 	.map_err(|err| println!("File error: {}",err))?;
 
     // Lex.
-    let tokens = lexer::tokenize(file)
+    let tokens = lexer::tokenize(&file)
 	.map_err(|err|
 		 println!(
 		     "Lexical error at line {} column {}: {}",
 		     err.0,err.1,err.2))?;
 
     // Parse.
-    let ast: syntax::Cmd = parser::parse(tokens)
-	.map_err(|err| println!("Parsing error: {}",err))?;
-
+    let ast: syntax::Cmd = parser::parse(&file,tokens)?;
+    
     println!("Program parsed as");
     println!("{}",ast);
     println!("Executing program");
