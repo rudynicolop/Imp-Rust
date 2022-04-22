@@ -1,5 +1,6 @@
-use std::{char, fmt, str::CharIndices, iter::{Iterator, Peekable}};
+use std::{char, fmt, sync::Arc, str::CharIndices, iter::{Iterator, Peekable}};
 use peeking_take_while::PeekableExt;
+use codespan::{FileMap, ByteIndex, ByteOffset};
 
 #[derive(Clone,Debug)]
 pub enum Token {
@@ -101,17 +102,11 @@ fn token_of_string (s : &str) -> Token {
     }
 }
 
-pub struct Info <A> {
-    line_no : usize,   // line number
-    column_no : usize, // column start number
-    item : A
-}
-
-impl <A> Info <A> {
-    pub fn new(line_no:usize, col_no:usize, a:A) -> Self {
-	Info { line_no:line_no, column_no:col_no, item:a }
-    }
-}
+pub type Spanned = (
+    ByteIndex, // start of token in file
+    Token,
+    ByteIndex  // end of token in file
+);
 
 /// Lexical errors.
 #[derive(Debug)]
@@ -122,74 +117,61 @@ pub enum BadLex {
 }
 
 pub struct Lexer<'input> {
-    chars : Peekable<CharIndices<'input>>,
-    curr_line_no : usize // current line.
+    source : &'input FileMap, // source file.
+    chars : Peekable<CharIndices<'input>> // characters to lex.
 }
 
 impl<'input> Lexer<'input> {
-    pub fn new(input: &'input str) -> Self {
-        Lexer { chars: input.char_indices().peekable(),
-		curr_line_no: 0 }
-    }
-
-    pub fn new_info <A> (self, col_no:usize, a:A) -> Info <A> {
-	Info::new
-	    (self.curr_line_no + 1,
-	     col_no - self.curr_line_no, a)
+    pub fn new(source: &'input FileMap) -> Self {
+        Lexer { source: source,
+		chars: source.src().char_indices().peekable() }
     }
 }
 
-pub type Spanned = Result<Info<Token>, Info<BadLex>>;
+pub fn spanned (i : usize, token : Token) -> Spanned {
+    (ByteIndex(i as u32), token,
+     ByteIndex(i as u32) + ByteOffset (token.len() as i64))
+}
 
 impl<'a> Iterator for Lexer<'a> {
-    type Item = Spanned;
+    type Item = Result<Spanned,(ByteIndex,BadLex)>;
     
     fn next(&mut self) -> Option<Self::Item> {
 	loop {
 	    if let Some((i,c)) = self.chars.next() {
 
-		// Check whitespace.
-		if c.is_whitespace() {
-		    if let '\n' = c {
-			// Increment line number
-			// when encountering a newline.
-			self.curr_line_no = self.curr_line_no + 1
-		    }
-		    continue
-		}
+		// Skip whitespace.
+		if c.is_whitespace() { continue }
 		
 		return Some (match c {
-		    '{' => Ok (self.new_info(i,Token::LBRACE)),
-		    '}' => Ok (self.new_info(i,Token::RBRACE)),
-		    '(' => Ok (self.new_info(i,Token::LPAREN)),
-		    ')' => Ok (self.new_info(i,Token::RPAREN)),
-		    ';' => Ok (self.new_info(i,Token::SEMICOLON)),
-		    '+' => Ok (self.new_info(i,Token::ADD)),
-		    '*' => Ok (self.new_info(i,Token::MUL)),
-		    '-' => Ok (self.new_info(i,Token::SUB)),
+		    '{' => Ok (spanned (i,Token::LBRACE)),
+		    '}' => Ok (spanned (i,Token::RBRACE)),
+		    '(' => Ok (spanned (i,Token::LPAREN)),
+		    ')' => Ok (spanned (i,Token::RPAREN)),
+		    ';' => Ok (spanned (i,Token::SEMICOLON)),
+		    '+' => Ok (spanned (i,Token::ADD)),
+		    '*' => Ok (spanned (i,Token::MUL)),
+		    '-' => Ok (spanned (i,Token::SUB)),
 		    ':' => {
 			if let Some((_,'=')) = self.chars.next() {
-			    Ok (self.new_info(i,Token::ASGN))
+			    Ok (spanned (i,Token::ASGN))
 			} else {
-			    Err (self.new_info
-				 (i, BadLex::ExpectedChar (':','=')))
-			}
+			    Err ((ByteIndex(i as u32),
+				  BadLex::ExpectedChar (':','='))) }
 		    },
 		    '<' => {
 			if let Some((_,'?')) = self.chars.next() {
-			    Ok (self.new_info(i,Token::LT))
+			    Ok (spanned (i,Token::LT))
 			} else {
-			    Err (self.new_info
-				 (i, BadLex::ExpectedChar ('<','?')))
-			}
+			    Err ((ByteIndex(i as u32),
+				  BadLex::ExpectedChar ('<','?'))) }
 		    },
 		    '=' => {
 			if let Some((_,'?')) = self.chars.next() {
-			    Ok (self.new_info(i,Token::EQ))
+			    Ok (spanned (i,Token::EQ))
 			} else {
-			    Err (self.new_info
-				 (i, BadLex::ExpectedChar ('=','?')))
-			}
+			    Err ((ByteIndex(i as u32),
+				  BadLex::ExpectedChar ('=','?'))) }
 		    },
 		    _ => {
 			if c.is_ascii_digit() {
@@ -200,24 +182,40 @@ impl<'a> Iterator for Lexer<'a> {
 				.for_each(|ch| num.push(ch.1));
 			    num.parse::<i32>()
 				.map_err
-				(|err|
-				 self.new_info(i, BadLex::Internal (err)))
-				.map
-				(|z|
-				 self.new_info(i, Token::NUM(z)))
+				(|err| (ByteIndex (i as u32),
+					BadLex::Internal (err)))
+				.map (|z| spanned (i, Token::NUM(z)))
 			} else if c.is_alphabetic() {
 			    let mut s = c.to_string();
 			    self.chars
 				.by_ref()
 				.peeking_take_while(|ch| ch.1.is_alphanumeric())
 				.for_each(|ch| s.push(ch.1));
-			    Ok (self.new_info(i,token_of_string(&s)))
+			    Ok (spanned (i, token_of_string(&s)))
 			} else {
-			    Err (self.new_info(i,BadLex::NonTokenChar(c)))
+			    Err ((ByteIndex(i as u32),
+				  BadLex::NonTokenChar (c)))
 			}
 		    }
 		})
 	    } else { return None }
 	}
     }
+}
+
+fn tokenize(src : Arc<FileMap>)
+	    -> Result<Vec::<Spanned>, ((usize,usize),BadLex)> {
+    let mut tokens = Vec::new();
+    let mut lexer = Lexer::new(&src);
+    while let Some (result) = lexer.next() {
+	match result {
+	    Ok (sp) => tokens.push(sp),
+	    Err ((index, err)) => {
+		return Err
+		    ((src.location(index)
+		      .expect("Looking up bad index in file"),err))
+	    }
+	}
+    }
+    Ok (tokens)
 }
