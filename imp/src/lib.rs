@@ -1,6 +1,7 @@
 #![feature(box_syntax)]
 #![feature(box_patterns)]
 #![feature(box_into_inner)]
+// #![feature(structural_match)]
 
 extern crate codespan;
 extern crate clap;
@@ -9,6 +10,7 @@ extern crate peeking_take_while;
 
 pub mod error;
 pub mod eval;
+pub mod fold;
 pub mod lexer;
 pub mod op;
 pub mod parser;

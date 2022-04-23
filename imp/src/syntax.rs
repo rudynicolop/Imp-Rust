@@ -1,7 +1,7 @@
-use std::fmt;
+use std::{cmp::{PartialEq, Eq}, fmt /*, marker::StructuralEq */};
 
 // Arithmetic operators.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Aop {
     Add,
     Sub,
@@ -19,7 +19,7 @@ impl fmt::Display for Aop {
 }
 
 // Arithmetic expressions.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Aexpr {
     Int(i32),
     Var(String),
@@ -37,7 +37,7 @@ impl fmt::Display for Aexpr {
 }
 
 // Comparison operators.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Cop {
     Eq,
     Lt,
@@ -53,7 +53,7 @@ impl fmt::Display for Cop {
 }
 
 // Boolean operators.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Bop {
     And,
     Or,
@@ -69,7 +69,7 @@ impl fmt::Display for Bop {
 }
 
 // Boolean expressions.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Bexpr {
     Bool(bool),
     Cop(Cop, Box<Aexpr>, Box<Aexpr>),
@@ -87,7 +87,7 @@ impl fmt::Display for Bexpr {
 }
 
 // Commands.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Cmd {
     Skip,
     Ass(String, Box<Aexpr>),
