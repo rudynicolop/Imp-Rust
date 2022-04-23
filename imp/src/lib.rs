@@ -3,6 +3,7 @@
 #![feature(box_into_inner)]
 
 extern crate codespan;
+extern crate clap;
 extern crate lalrpop_util;
 extern crate peeking_take_while;
 

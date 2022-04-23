@@ -1,19 +1,28 @@
-use std::{env, path::{Path, PathBuf}};
+use std::path::PathBuf;
 use imp::{lexer,parser,store,syntax};
 use codespan::CodeMap;
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[clap(name="imp")]
+struct Args {
+    #[clap(short, long)]
+    eval: bool, // evaluate
+    
+    #[clap(short, long)]
+    step: bool, // small-step
+    
+    #[clap(parse(from_os_str))]
+    path: PathBuf, // file path
+}
 
 fn main() -> Result<(),()> {
     // Parse command-line arguments.
-    let args : Vec<String> = env::args().collect();
-
-    // Create path to get file.
-    let path = Path::new(&args[1]);
-    let mut buf = PathBuf::new();
-    buf.push(path);
+    let args : Args = Args::parse();
 
     // Create filemap.
     let mut codemap = CodeMap::new();
-    let file = codemap.add_filemap_from_disk(buf)
+    let file = codemap.add_filemap_from_disk(args.path)
 	.map_err(|err| println!("File error: {}",err))?;
 
     // Lex.
@@ -28,11 +37,15 @@ fn main() -> Result<(),()> {
     
     println!("------------ Program parsed as ------------");
     println!("{}",ast);
-    println!("------------ Executing program ------------");
-    ast.normalize(&mut store::Store::new())
-	.map_err(|err| println!("Evaluation error: {}", err))
-    /*
-    ast.eval(&mut store::Store::new())
-	.map_err(|err| println!("Evaluation error: {}", err))
-     */
+    if args.step {
+	println!("------------ Stepping program ------------");
+	return ast.normalize(&mut store::Store::new())
+	    .map_err(|err| println!("Evaluation error: {}", err));
+    }
+    if args.eval {
+	println!("------------ Executing program ------------");
+	return ast.eval(&mut store::Store::new())
+	    .map_err(|err| println!("Evaluation error: {}", err));
+    }
+    Ok (())
 }
