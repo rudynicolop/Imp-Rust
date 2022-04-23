@@ -44,7 +44,7 @@ impl Cmd {
             }
 	    Cmd::Print(e) => {
 		let z = e.eval(s)?;
-		println!("{}",z);
+		println!("OUTPUT: {}",z);
 		Ok(())
 	    }
             Cmd::Seq(c1, c2) => {

@@ -48,7 +48,7 @@ impl Cmd {
 		e.step(s)
 		.map(|b| {*self = Ass (x,e); b}),
 	    Print (box Aexpr::Int (z)) => {
-		println!("{}",z); Ok (true) }
+		println!("OUTPUT: {}",z); Ok (true) }
 	    Print (mut e) =>
 		e.step(s)
 		.map(|b| {*self = Print (e); b}),
@@ -67,6 +67,18 @@ impl Cmd {
 		     box Seq (box c.clone(),
 			      box While (box e.clone(), box c.clone())),
 		     box Skip); Ok (true) }
+	}
+    }
+
+    pub fn normalize(&mut self, s : &mut Store) -> Result<(),Error> {
+	loop {
+	    println!("{}",self);
+	    match self.step(s) {
+		Ok (true) => println!("-->"),
+		Ok (false) => {
+		    println!("Terminated."); return Ok (()) }
+		Err (err) => return Err (err)
+	    }
 	}
     }
 }

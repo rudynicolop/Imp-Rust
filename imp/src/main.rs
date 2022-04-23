@@ -24,12 +24,15 @@ fn main() -> Result<(),()> {
 		     err.0,err.1,err.2))?;
 
     // Parse.
-    let ast: syntax::Cmd = parser::parse(&file,tokens)?;
+    let mut ast: syntax::Cmd = parser::parse(&file,tokens)?;
     
-    println!("Program parsed as");
+    println!("------------ Program parsed as ------------");
     println!("{}",ast);
-    println!("Executing program");
-    
+    println!("------------ Executing program ------------");
+    ast.normalize(&mut store::Store::new())
+	.map_err(|err| println!("Evaluation error: {}", err))
+    /*
     ast.eval(&mut store::Store::new())
 	.map_err(|err| println!("Evaluation error: {}", err))
+     */
 }
