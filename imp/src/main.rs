@@ -1,5 +1,5 @@
 use std::{env, path::{Path, PathBuf}};
-use imp::{lexer,parser,bigstep,syntax};
+use imp::{lexer,parser,store,syntax};
 use codespan::CodeMap;
 
 fn main() -> Result<(),()> {
@@ -29,7 +29,7 @@ fn main() -> Result<(),()> {
     println!("Program parsed as");
     println!("{}",ast);
     println!("Executing program");
-
-    ast.eval(&mut bigstep::Store::new())
+    
+    ast.eval(&mut store::Store::new())
 	.map_err(|err| println!("Evaluation error: {}", err))
 }

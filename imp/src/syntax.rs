@@ -19,6 +19,7 @@ impl fmt::Display for Aop {
 }
 
 // Arithmetic expressions.
+#[derive(Clone)]
 pub enum Aexpr {
     Int(i32),
     Var(String),
@@ -68,6 +69,7 @@ impl fmt::Display for Bop {
 }
 
 // Boolean expressions.
+#[derive(Clone)]
 pub enum Bexpr {
     Bool(bool),
     Cop(Cop, Box<Aexpr>, Box<Aexpr>),
@@ -85,6 +87,7 @@ impl fmt::Display for Bexpr {
 }
 
 // Commands.
+#[derive(Clone)]
 pub enum Cmd {
     Skip,
     Ass(String, Box<Aexpr>),
