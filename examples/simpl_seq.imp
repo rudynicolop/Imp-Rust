@@ -1,0 +1,4 @@
+x := 42;
+z := x - 2;
+hero := z * 5;
+print hero

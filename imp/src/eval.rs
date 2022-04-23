@@ -1,61 +1,4 @@
-use crate::syntax::{Aexpr, Aop, Bexpr, Bop, Cmd, Cop};
-use std::{fmt, collections::HashMap};
-
-// TODO, other errors.
-pub enum Error {
-    UnboundVariable(String)
-}
-
-impl fmt::Display for Error {
-    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-	match self {
-	    Error::UnboundVariable(x) =>
-		write!(f, "Unbound Variable {}", x)
-	}
-    }
-}
-
-pub struct Store(HashMap<String, i32>);
-
-impl Store {
-    pub fn new () -> Self { Store(HashMap::new()) }
-    
-    fn get(&self, var: &str) -> Option<i32> {
-        self.0.get(var).copied()
-    }
-
-    fn insert(&mut self, var: &str, value: i32) {
-        self.0.insert(String::from(var), value);
-    }
-}
-
-impl Aop {
-    fn eval(&self, z1: i32, z2: i32) -> i32 {
-        match self {
-            Aop::Add => z1 + z2,
-            Aop::Sub => z1 - z2,
-            Aop::Mul => z1 * z2,
-        }
-    }
-}
-
-impl Cop {
-    fn eval(&self, z1: i32, z2: i32) -> bool {
-        match self {
-            Cop::Eq => z1 == z2,
-            Cop::Lt => z1 < z2,
-        }
-    }
-}
-
-impl Bop {
-    fn eval(&self, b1: bool, b2: bool) -> bool {
-        match self {
-            Bop::And => b1 && b2,
-            Bop::Or => b1 || b2,
-        }
-    }
-}
+use crate::{error::Error, store::Store, syntax::{Aexpr, Bexpr, Cmd}};
 
 impl Aexpr {
     fn eval(&self, s: &Store) -> Result<i32, Error> {
@@ -101,7 +44,7 @@ impl Cmd {
             }
 	    Cmd::Print(e) => {
 		let z = e.eval(s)?;
-		println!("{}",z);
+		println!("OUTPUT: {}",z);
 		Ok(())
 	    }
             Cmd::Seq(c1, c2) => {
