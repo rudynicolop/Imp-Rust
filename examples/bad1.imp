@@ -1,0 +1,1 @@
+yoyo := 42; x := ` yoyo ; skip
