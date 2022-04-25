@@ -7,6 +7,9 @@ use clap::Parser;
 #[clap(name="imp")]
 struct Args {
     #[clap(short, long)]
+    fold: bool, // constant fold
+    
+    #[clap(short, long)]
     eval: bool, // evaluate
     
     #[clap(short, long)]
@@ -35,8 +38,13 @@ fn main() -> Result<(),()> {
     // Parse.
     let mut ast: syntax::Cmd = parser::parse(&file,tokens)?;
     
-    println!("------------ Program parsed as ------------");
+    println!("------------ Program parsed as: ------------");
     println!("{}",ast);
+    if args.fold {
+	println!("------------ Constant-folded program: ------------");
+	let ast = ast.fold();
+	println!("{}",ast);
+    }
     if args.step {
 	println!("------------ Stepping program ------------");
 	return ast.normalize(&mut store::Store::new())

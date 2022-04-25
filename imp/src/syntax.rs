@@ -1,7 +1,7 @@
-use std::fmt;
+use std::{cmp::{PartialEq, Eq}, fmt /*, marker::StructuralEq */};
 
 // Arithmetic operators.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Aop {
     Add,
     Sub,
@@ -19,7 +19,7 @@ impl fmt::Display for Aop {
 }
 
 // Arithmetic expressions.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Aexpr {
     Int(i32),
     Var(String),
@@ -37,7 +37,7 @@ impl fmt::Display for Aexpr {
 }
 
 // Comparison operators.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Cop {
     Eq,
     Lt,
@@ -53,7 +53,7 @@ impl fmt::Display for Cop {
 }
 
 // Boolean operators.
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum Bop {
     And,
     Or,
@@ -69,25 +69,27 @@ impl fmt::Display for Bop {
 }
 
 // Boolean expressions.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Bexpr {
     Bool(bool),
-    Cop(Cop, Box<Aexpr>, Box<Aexpr>),
-    Bop(Bop, Box<Bexpr>, Box<Bexpr>),
+    Not (Box<Bexpr>),
+    COp(Cop, Box<Aexpr>, Box<Aexpr>),
+    BOp(Bop, Box<Bexpr>, Box<Bexpr>),
 }
 
 impl fmt::Display for Bexpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 	match self {
 	    Bexpr::Bool(b) => write!(f, "{}", b),
-	    Bexpr::Cop(o,e1,e2) => write!(f, "({} {} {})", e1, o, e2),
-	    Bexpr::Bop(o,e1,e2) => write!(f, "({} {} {})", e1, o, e2)
+	    Bexpr::Not (e) => write!(f, "(!{})", e),
+	    Bexpr::COp(o,e1,e2) => write!(f, "({} {} {})", e1, o, e2),
+	    Bexpr::BOp(o,e1,e2) => write!(f, "({} {} {})", e1, o, e2)
 	}
     }
 }
 
 // Commands.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum Cmd {
     Skip,
     Ass(String, Box<Aexpr>),

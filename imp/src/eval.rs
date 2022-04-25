@@ -18,14 +18,19 @@ impl Aexpr {
 
 impl Bexpr {
     fn eval(&self, s: &Store) -> Result<bool, Error> {
+	use Bexpr::*;
         match self {
-            Bexpr::Bool(b) => Ok(*b),
-            Bexpr::Cop(o, e1, e2) => {
+            Bool(b) => Ok(*b),
+	    Not(e) => {
+		let b = e.eval(s)?;
+		Ok (! b)
+	    }
+	    COp(o, e1, e2) => {
                 let z1 = e1.eval(s)?;
                 let z2 = e2.eval(s)?;
                 Ok(o.eval(z1, z2))
             }
-            Bexpr::Bop(o, e1, e2) => {
+            BOp(o, e1, e2) => {
                 let b1 = e1.eval(s)?;
                 let b2 = e2.eval(s)?;
                 Ok(o.eval(b1, b2))

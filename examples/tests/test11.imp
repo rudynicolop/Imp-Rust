@@ -1,0 +1,12 @@
+x := 0;
+y := 1;
+if (x =? y + 2 and x =? y + 2) {
+  z := y;
+  print 42 + y
+} else {
+  z := x;
+  print 69 + z
+};
+while (666 <? y - x or 666 <? y - x) {
+  print 69 + 42
+}
