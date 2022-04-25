@@ -1,0 +1,7 @@
+y := 0;
+x := 99 * y * 0;
+skip;
+while (x * 0 =? 1) {
+  print 42
+};
+skip

@@ -72,16 +72,18 @@ impl fmt::Display for Bop {
 #[derive(Clone, PartialEq, Eq)]
 pub enum Bexpr {
     Bool(bool),
-    Cop(Cop, Box<Aexpr>, Box<Aexpr>),
-    Bop(Bop, Box<Bexpr>, Box<Bexpr>),
+    Not (Box<Bexpr>),
+    COp(Cop, Box<Aexpr>, Box<Aexpr>),
+    BOp(Bop, Box<Bexpr>, Box<Bexpr>),
 }
 
 impl fmt::Display for Bexpr {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
 	match self {
 	    Bexpr::Bool(b) => write!(f, "{}", b),
-	    Bexpr::Cop(o,e1,e2) => write!(f, "({} {} {})", e1, o, e2),
-	    Bexpr::Bop(o,e1,e2) => write!(f, "({} {} {})", e1, o, e2)
+	    Bexpr::Not (e) => write!(f, "(!{})", e),
+	    Bexpr::COp(o,e1,e2) => write!(f, "({} {} {})", e1, o, e2),
+	    Bexpr::BOp(o,e1,e2) => write!(f, "({} {} {})", e1, o, e2)
 	}
     }
 }

@@ -19,6 +19,7 @@ pub enum Token {
     AND,
     EQ,
     LT,
+    NOT,
     ADD,
     SUB,
     MUL,
@@ -39,6 +40,7 @@ impl Token {
 	    ADD    |
 	    SUB    |
 	    MUL    |
+	    NOT    |
 	    SEMICOLON => 1,
 	    OR  |
 	    EQ  |
@@ -77,6 +79,7 @@ impl fmt::Display for Token {
 	    AND       => write!(f,"and"),
 	    EQ        => write!(f,"=?"),
 	    LT        => write!(f,"<?"),
+	    NOT       => write!(f,"!"),
 	    ADD       => write!(f,"+"),
 	    SUB       => write!(f,"-"),
 	    MUL       => write!(f,"*"),
@@ -106,6 +109,7 @@ impl fmt::Debug for Token {
 	    AND       => write!(f,"and"),
 	    EQ        => write!(f,"=?"),
 	    LT        => write!(f,"<?"),
+	    NOT       => write!(f,"!"),
 	    ADD       => write!(f,"+"),
 	    SUB       => write!(f,"-"),
 	    MUL       => write!(f,"*"),
@@ -191,6 +195,7 @@ impl<'a> Iterator for Lexer<'a> {
 		    '+' => Ok (spanned (i,Token::ADD)),
 		    '*' => Ok (spanned (i,Token::MUL)),
 		    '-' => Ok (spanned (i,Token::SUB)),
+		    '!' => Ok (spanned (i,Token::NOT)),
 		    ':' => {
 			if let Some((_,'=')) = self.chars.next() {
 			    Ok (spanned (i,Token::ASGN))

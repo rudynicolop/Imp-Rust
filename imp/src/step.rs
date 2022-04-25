@@ -23,16 +23,20 @@ impl Bexpr {
 	use Bexpr::*;
 	match self {
 	    Bool (_) => Ok (false),
-	    Cop(o, box Aexpr::Int(z1), box Aexpr::Int(z2)) => {
+	    Not (box Bool (b)) => {
+		*self = Bool (!*b); Ok (true)
+	    }
+	    Not (e) => e.step(s),
+	    COp (o, box Aexpr::Int(z1), box Aexpr::Int(z2)) => {
 		*self = Bool (o.eval(*z1,*z2)); Ok (true)
 	    }
-	    Cop (_, box Aexpr::Int (_), e2) => e2.step(s),
-	    Cop (_, e1, _) => e1.step(s),
-	    Bop (o, box Bool(b1), box Bool(b2)) => {
+	    COp (_, box Aexpr::Int (_), e2) => e2.step(s),
+	    COp (_, e1, _) => e1.step(s),
+	    BOp (o, box Bool(b1), box Bool(b2)) => {
 		*self = Bool (o.eval(*b1,*b2)); Ok (true)
 	    }
-	    Bop (_, box Bool (_), e2) => e2.step(s),
-	    Bop (_, e1, _) => e1.step(s)
+	    BOp (_, box Bool (_), e2) => e2.step(s),
+	    BOp (_, e1, _) => e1.step(s)
 	}
     }
 }

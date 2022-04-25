@@ -1,0 +1,18 @@
+n := 0;
+m := 1;
+x := 1;
+while (x <? 10) {
+  if (x <? 2) {
+    if (n =? 0) {
+      skip
+    } else {
+      n := n + 1
+    }
+  } else {
+    a := n;
+    n := n + m;
+    m := a
+  };
+  x := x + 1;
+  print n
+}
